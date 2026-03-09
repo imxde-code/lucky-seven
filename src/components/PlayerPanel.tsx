@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
 import type { Card, PrivatePlayerDoc, LockInfo } from '../lib/types'
 import { getSeatColor } from '../lib/playerColors'
@@ -22,6 +22,10 @@ interface PlayerPanelProps {
   slotClickable?: boolean
   /** Temporary action highlight — pulsing colored ring with label */
   actionHighlight?: ActionHighlight | null
+  /** Floating chat bubble text — UI only, auto-cleared by parent */
+  chatBubble?: string | null
+  /** Queue number (1 = current turn, 2 = next, etc.) */
+  queueNumber?: number | null
 }
 
 const EMPTY_LOCKED_BY: [LockInfo, LockInfo, LockInfo] = [
@@ -42,6 +46,8 @@ export default function PlayerPanel({
   onSlotClick,
   slotClickable = false,
   actionHighlight,
+  chatBubble,
+  queueNumber,
 }: PlayerPanelProps) {
   const hand = privateState?.hand ?? []
   const known = privateState?.known ?? {}
@@ -67,6 +73,26 @@ export default function PlayerPanel({
         borderLeftColor: color.solid,
       }}
     >
+      {/* Chat bubble — floating above panel */}
+      <AnimatePresence>
+        {chatBubble && (
+          <motion.div
+            key={chatBubble}
+            initial={{ opacity: 0, y: 8, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.9 }}
+            className="absolute -top-9 left-4 right-4 z-20 pointer-events-none"
+          >
+            <div
+              className="inline-block max-w-full px-2.5 py-1 rounded-xl text-[11px] font-medium text-white truncate shadow-lg"
+              style={{ backgroundColor: color.solid }}
+            >
+              {chatBubble}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Action highlight overlay — temporary pulsing ring */}
       {actionHighlight && (
         <motion.div
@@ -98,6 +124,14 @@ export default function PlayerPanel({
         >
           {displayName}
         </span>
+        {queueNumber != null && (
+          <span
+            className="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+            style={{ backgroundColor: color.bg, color: color.text }}
+          >
+            #{queueNumber}
+          </span>
+        )}
         {isLocalPlayer && (
           <span className="px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold rounded-md">
             YOU

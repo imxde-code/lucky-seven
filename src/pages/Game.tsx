@@ -39,6 +39,7 @@ import FlyingCard from '../components/FlyingCard'
 import ChatPanel from '../components/ChatPanel'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useChat } from '../hooks/useChat'
+import { useChatBubbles } from '../hooks/useChatBubbles'
 import { getSeatColor } from '../lib/playerColors'
 import { playSfx, vibrate } from '../lib/sfx'
 import type { Card, PowerEffectType, PowerRankKey, PlayerDoc } from '../lib/types'
@@ -77,6 +78,23 @@ export default function Game() {
     players[user?.uid ?? '']?.displayName ?? 'Player',
     players[user?.uid ?? '']?.seatIndex ?? 0,
   )
+
+  // Chat bubbles above player panels (UI-only, auto-clear after 4s)
+  const chatBubbles = useChatBubbles(chat.messages, user?.uid ?? '')
+
+  // Queue number map: playerId → queue position (1 = current turn)
+  const queueNumbers = (() => {
+    const map: Record<string, number> = {}
+    if (!game?.currentTurnPlayerId || !game?.playerOrder) return map
+    const order = game.playerOrder
+    const curIdx = order.indexOf(game.currentTurnPlayerId)
+    if (curIdx === -1) return map
+    for (let i = 0; i < order.length; i++) {
+      const idx = (curIdx + i) % order.length
+      map[order[idx]] = i + 1
+    }
+    return map
+  })()
 
   // Derived state
   const drawnCard = privateState?.drawnCard ?? null
@@ -453,6 +471,8 @@ export default function Game() {
                   locks={players[pid]?.locks ?? [false, false, false]}
                   lockedBy={players[pid]?.lockedBy}
                   actionHighlight={actionHighlights[pid] ?? null}
+                  chatBubble={chatBubbles[pid] ?? null}
+                  queueNumber={queueNumbers[pid] ?? null}
                 />
               </div>
             ))}
@@ -509,6 +529,7 @@ export default function Game() {
             onSlotClick={isActionPhase ? handleSwap : undefined}
             slotClickable={isActionPhase && hasDrawnCard}
             actionHighlight={actionHighlights[user.uid] ?? null}
+            queueNumber={queueNumbers[user.uid] ?? null}
           />
         </div>
 
