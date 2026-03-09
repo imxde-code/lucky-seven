@@ -47,14 +47,18 @@ export const DEFAULT_POWER_ASSIGNMENTS: PowerAssignments = {
   JOKER: 'rearrange_cards',
 }
 
+export type DeckSize = 1 | 1.5 | 2
+
 export interface GameSettings {
   powerAssignments: PowerAssignments
   jokerCount: number // 1-4
+  deckSize: DeckSize // 1 = standard, 1.5 = 1 full + 27 extra, 2 = double deck
 }
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   powerAssignments: { ...DEFAULT_POWER_ASSIGNMENTS },
   jokerCount: 2,
+  deckSize: 1,
 }
 
 /** Human-readable effect label for UI */

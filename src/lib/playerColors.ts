@@ -1,4 +1,4 @@
-// Deterministic player color palette based on seatIndex (0–5).
+// Deterministic player color palette based on seatIndex (0–7).
 // No Firestore storage needed — derived purely from PlayerDoc.seatIndex.
 
 export interface SeatColor {
@@ -16,6 +16,8 @@ const SEAT_COLORS: SeatColor[] = [
   { name: 'rose',    solid: '#f43f5e', tinted: 'rgba(244,63,94,0.25)',   text: '#fda4af', bg: 'rgba(244,63,94,0.15)' },
   { name: 'violet',  solid: '#8b5cf6', tinted: 'rgba(139,92,246,0.25)', text: '#c4b5fd', bg: 'rgba(139,92,246,0.15)' },
   { name: 'cyan',    solid: '#06b6d4', tinted: 'rgba(6,182,212,0.25)',  text: '#67e8f9', bg: 'rgba(6,182,212,0.15)' },
+  { name: 'orange',  solid: '#f97316', tinted: 'rgba(249,115,22,0.25)', text: '#fdba74', bg: 'rgba(249,115,22,0.15)' },
+  { name: 'lime',    solid: '#84cc16', tinted: 'rgba(132,204,22,0.25)', text: '#bef264', bg: 'rgba(132,204,22,0.15)' },
 ]
 
 export function getSeatColor(seatIndex: number): SeatColor {

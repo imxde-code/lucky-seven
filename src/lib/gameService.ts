@@ -131,6 +131,7 @@ export async function createGame(
   const gameSettings: GameSettings = {
     powerAssignments: { ...DEFAULT_GAME_SETTINGS.powerAssignments, ...settings?.powerAssignments },
     jokerCount: settings?.jokerCount ?? DEFAULT_GAME_SETTINGS.jokerCount,
+    deckSize: settings?.deckSize ?? DEFAULT_GAME_SETTINGS.deckSize,
   }
 
   const gameData: GameDoc = {
@@ -225,7 +226,8 @@ export async function startGame(gameId: string): Promise<void> {
     if (game.playerOrder.length < 2) throw new Error('Need at least 2 players')
 
     const jokerCount = game.settings?.jokerCount ?? 2
-    const deck = shuffleDeck(buildDeck(jokerCount), game.seed)
+    const deckSize = game.settings?.deckSize ?? 1
+    const deck = shuffleDeck(buildDeck(jokerCount, deckSize, game.seed), game.seed)
     const playerCount = game.playerOrder.length
     const cardsNeeded = playerCount * 3
 

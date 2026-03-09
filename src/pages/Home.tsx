@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { createGame, joinGame, findGameByCode } from '../lib/gameService'
 import { useAuth } from '../hooks/useAuth'
 import HowToPlay from '../components/HowToPlay'
-import type { PowerAssignments, PowerEffectType, PowerRankKey } from '../lib/types'
+import type { PowerAssignments, PowerEffectType, PowerRankKey, DeckSize } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS, ALL_EFFECT_TYPES, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
 
 const RANK_ROWS: { key: PowerRankKey; label: string; color: string }[] = [
@@ -30,6 +30,7 @@ export default function Home() {
   // Power settings state
   const [assignments, setAssignments] = useState<PowerAssignments>({ ...DEFAULT_POWER_ASSIGNMENTS })
   const [jokerCount, setJokerCount] = useState(DEFAULT_GAME_SETTINGS.jokerCount)
+  const [deckSize, setDeckSize] = useState<DeckSize>(DEFAULT_GAME_SETTINGS.deckSize)
 
   const updateAssignment = (key: PowerRankKey, value: PowerEffectType) => {
     setAssignments((prev) => ({ ...prev, [key]: value }))
@@ -43,6 +44,7 @@ export default function Home() {
       const gameId = await createGame(name.trim(), maxPlayers, {
         powerAssignments: assignments,
         jokerCount,
+        deckSize,
       })
       navigate(`/lobby/${gameId}`)
     } catch (e) {
@@ -154,12 +156,20 @@ export default function Home() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">Max Players</label>
-                <div className="flex gap-2">
-                  {[2, 3, 4, 5, 6].map((n) => (
+                <div className="flex gap-1.5 flex-wrap">
+                  {[2, 3, 4, 5, 6, 7, 8].map((n) => (
                     <button
                       key={n}
-                      onClick={() => setMaxPlayers(n)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                      onClick={() => {
+                        setMaxPlayers(n)
+                        // Suggest deck size for larger games
+                        if (n >= 7 && deckSize === 1) {
+                          toast('Tip: 7+ players work best with 1.5× or 2× deck!', { icon: '\u{1F4A1}' })
+                        } else if (n >= 5 && deckSize === 1) {
+                          toast('Tip: 5+ players may run low on cards. Consider 1.5× deck.', { icon: '\u{1F4A1}' })
+                        }
+                      }}
+                      className={`flex-1 min-w-[40px] py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                         maxPlayers === n
                           ? 'bg-emerald-600 text-white'
                           : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -169,6 +179,28 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Deck Size</label>
+                <div className="flex gap-2">
+                  {([1, 1.5, 2] as DeckSize[]).map((ds) => (
+                    <button
+                      key={ds}
+                      onClick={() => setDeckSize(ds)}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                        deckSize === ds
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {ds === 1 ? '1×' : ds === 1.5 ? '1.5×' : '2×'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  {deckSize === 1 ? '54 cards (standard)' : deckSize === 1.5 ? '~81 cards (1 full + 27 extra)' : '~108 cards (double deck)'}
+                </p>
               </div>
 
               {/* Power Settings accordion */}
@@ -296,7 +328,7 @@ export default function Home() {
 
         <div className="text-center mt-6 space-y-1">
           <p className="text-xs text-slate-500">
-            2-6 players &middot; Lowest score wins &middot; Sevens are worth zero!
+            2-8 players &middot; Lowest score wins &middot; Sevens are worth zero!
           </p>
           <HowToPlay />
         </div>

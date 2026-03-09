@@ -1,25 +1,57 @@
 import seedrandom from 'seedrandom'
-import type { Card, Suit, Rank } from './types'
+import type { Card, Suit, Rank, DeckSize } from './types'
 
 const SUITS: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades']
 const RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 
 /**
- * Build a deck with 52 standard cards + `jokerCount` jokers (1-4).
- * Default is 2 jokers to match the original deck.
+ * Build a single standard deck of 52 cards with a deckIndex prefix for unique IDs.
  */
-export function buildDeck(jokerCount: number = 2): Card[] {
+function buildSingleDeck(deckIndex: number): Card[] {
+  const prefix = deckIndex === 0 ? '' : `d${deckIndex}_`
   const cards: Card[] = []
-
   for (const suit of SUITS) {
     for (const rank of RANKS) {
-      cards.push({ id: `${rank}_${suit}`, suit, rank })
+      cards.push({ id: `${prefix}${rank}_${suit}`, suit, rank })
     }
   }
+  return cards
+}
 
-  // Add jokers with unique IDs
+/**
+ * Build a deck supporting multiplier:
+ * - 1 deck = 52 cards + jokers
+ * - 1.5 decks = 1 full deck + 27 deterministic cards from a 2nd deck
+ * - 2 decks = 2 full decks with unique IDs
+ *
+ * Jokers are added per jokerCount (scaled by deckSize for 2-deck).
+ */
+export function buildDeck(jokerCount: number = 2, deckSize: DeckSize = 1, seed?: string): Card[] {
+  const cards: Card[] = []
+
+  if (deckSize === 1) {
+    cards.push(...buildSingleDeck(0))
+  } else if (deckSize === 2) {
+    cards.push(...buildSingleDeck(0))
+    cards.push(...buildSingleDeck(1))
+  } else {
+    // 1.5 decks: 1 full deck + 27 deterministic cards from 2nd deck
+    cards.push(...buildSingleDeck(0))
+    const secondDeck = buildSingleDeck(1)
+    // Use seed to deterministically pick 27 cards from 2nd deck
+    const rng = seedrandom(seed ?? 'half-deck')
+    const shuffled = [...secondDeck]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    cards.push(...shuffled.slice(0, 27))
+  }
+
+  // Add jokers (scale for double deck)
   const clampedCount = Math.max(1, Math.min(4, jokerCount))
-  for (let i = 1; i <= clampedCount; i++) {
+  const jokerTotal = deckSize === 2 ? clampedCount * 2 : clampedCount
+  for (let i = 1; i <= jokerTotal; i++) {
     cards.push({ id: `Joker_${i}`, suit: 'hearts', rank: 'A', isJoker: true })
   }
 
