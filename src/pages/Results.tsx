@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useGame } from '../hooks/useGame'
 import { subscribeReveals, revealHand, writeGameSummary } from '../lib/gameService'
 import CardView from '../components/CardView'
+import VersionLabel from '../components/VersionLabel'
 import type { PlayerScore } from '../lib/types'
 
 export default function Results() {
@@ -186,6 +187,8 @@ export default function Results() {
           </button>
         </div>
       </motion.div>
+
+      <VersionLabel />
 
       {/* Watermark */}
       <div className="fixed bottom-2 right-3 text-xs md:text-sm font-medium pointer-events-none select-none z-10" style={{ color: 'var(--watermark)' }}>

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { createGame, joinGame, findGameByCode } from '../lib/gameService'
 import { useAuth } from '../hooks/useAuth'
 import HowToPlay from '../components/HowToPlay'
+import VersionLabel from '../components/VersionLabel'
 import type { PowerAssignments, PowerEffectType, PowerRankKey, DeckSize } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS, ALL_EFFECT_TYPES, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
 
@@ -333,6 +334,8 @@ export default function Home() {
           <HowToPlay />
         </div>
       </motion.div>
+
+      <VersionLabel />
 
       {/* Watermark */}
       <div className="fixed bottom-2 right-3 text-xs md:text-sm font-medium pointer-events-none select-none z-10" style={{ color: 'var(--watermark)' }}>

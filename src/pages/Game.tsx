@@ -31,6 +31,7 @@ import SlotPickerModal from '../components/SlotPickerModal'
 import JokerChaosModal from '../components/JokerChaosModal'
 import GameSettingsBar from '../components/GameSettings'
 import PowerGuideModal from '../components/PowerGuideModal'
+import VersionLabel from '../components/VersionLabel'
 import TurnQueue from '../components/TurnQueue'
 import { useActionHighlight } from '../hooks/useActionHighlight'
 import { useFlyingCard } from '../hooks/useFlyingCard'
@@ -602,6 +603,8 @@ export default function Game() {
           onComplete={clearFly}
         />
       )}
+
+      <VersionLabel />
 
       {/* Watermark */}
       <div className="fixed bottom-2 right-3 text-xs md:text-sm font-medium pointer-events-none select-none z-10" style={{ color: 'var(--watermark)' }}>

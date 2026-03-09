@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../hooks/useAuth'
 import { useGame } from '../hooks/useGame'
 import { startGame } from '../lib/gameService'
+import VersionLabel from '../components/VersionLabel'
 
 export default function Lobby() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -175,6 +176,8 @@ export default function Lobby() {
           Leave Lobby
         </button>
       </motion.div>
+
+      <VersionLabel />
 
       {/* Watermark */}
       <div className="fixed bottom-2 right-3 text-xs md:text-sm font-medium pointer-events-none select-none z-10" style={{ color: 'var(--watermark)' }}>
