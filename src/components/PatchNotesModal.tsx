@@ -71,14 +71,21 @@ export default function PatchNotesModal({ open, onClose }: PatchNotesModalProps)
                       {RELEASES[selectedIdx].date}
                     </p>
                   </div>
-                  <ul className="space-y-1.5">
-                    {RELEASES[selectedIdx].changes.map((change, i) => (
-                      <li key={i} className="flex gap-2 text-xs text-slate-300">
-                        <span className="text-amber-400 shrink-0">•</span>
-                        <span>{change}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {RELEASES[selectedIdx].sections.map((section, si) => (
+                    <div key={si} className="mb-3">
+                      <h5 className="text-xs font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">
+                        {section.heading}
+                      </h5>
+                      <ul className="space-y-1.5 mb-2">
+                        {section.items.map((item, i) => (
+                          <li key={i} className="flex gap-2 text-xs text-slate-300">
+                            <span className="text-amber-400 shrink-0">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

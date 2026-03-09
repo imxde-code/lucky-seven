@@ -4,46 +4,103 @@ export interface ReleaseNote {
   version: string
   title: string
   date: string
-  changes: string[]
+  sections: { heading: string; items: string[] }[]
 }
 
 export const RELEASES: ReleaseNote[] = [
   {
     version: 'v1.1',
     title: 'Signal & Flow Update',
-    date: '9 March 2026',
-    changes: [
-      'Player colors: each seat gets a unique color for card backs, panels, and log names',
-      'Flying card animations: see cards move between piles and players',
-      'Turn queue: compact display showing who plays next',
-      'Power guide: ? button shows this game\'s power assignments',
-      'Cancel flow fix: power modal "Back" returns to drawn card without consuming it',
-      'Pile draw lock: cards drawn from the pile cannot be undone',
-      'Improved log messages with colored player name chips',
-      'Action highlights: temporary glow on player panels after actions',
-      '5-8 player support with deck multiplier (1×, 1.5×, 2×)',
-      'In-game chat with emoji and player-colored bubbles',
-      'Feedback form with email notifications',
-      'Firestore quota optimizations: bounded logs, throttled presence, lazy subscriptions',
-      'Game-end analytics summary for win tracking',
+    date: '10 March 2026',
+    sections: [
+      {
+        heading: 'Gameplay',
+        items: [
+          'Support for 5-8 players with deck multiplier (1x, 1.5x, 2x decks)',
+          'Cards drawn from the pile can no longer be undone — commit to your draw!',
+          'Power guide: tap the ? button to see what each power card does this game',
+          'Cancel flow fix: pressing "Back" on a power modal returns to your drawn card without wasting it',
+        ],
+      },
+      {
+        heading: 'Visuals & Animations',
+        items: [
+          'Player colors: each seat gets a unique color shown on card backs, panels, and log names',
+          'Flying card animations: watch cards move between piles and players in real time',
+          'Action highlights: a temporary glow appears on player panels after they take an action',
+          'Improved game log with colored player name chips for easy scanning',
+        ],
+      },
+      {
+        heading: 'Social',
+        items: [
+          'In-game chat with quick emoji buttons and player-colored message bubbles',
+          'Chat available in both the lobby and during gameplay',
+          'Unread message badge on the chat button',
+          'Turn queue: see the full turn order and who\'s up next at a glance',
+        ],
+      },
+      {
+        heading: 'Quality of Life',
+        items: [
+          'Feedback form: send feedback directly from the lobby with star ratings',
+          'Patch notes viewer: tap the version label to see what\'s new',
+          'Performance improvements: bounded logs, throttled presence writes, lazy chat subscription',
+          'Game-end analytics for win tracking',
+        ],
+      },
     ],
   },
   {
     version: 'v1.0',
     title: 'Lucky Seven — Launch',
-    date: '7 March 2026',
-    changes: [
-      'Core gameplay: draw, swap, discard, end game, reveal hands',
-      '6 customizable power cards: Peek, Peek All, Swap, Lock, Unlock, Rearrange',
-      'Real-time multiplayer via Firebase Firestore with anonymous auth',
-      'Mobile-friendly responsive UI with touch-friendly buttons',
-      'Theme system: Blue, Dark, and Light themes',
-      'Sound effects (WebAudio) and haptic vibration',
-      'Reduced motion support (system/on/off)',
-      'Lobby system with 6-character join codes',
-      'Lock mechanics with metadata (who locked which card)',
-      'Results screen with multi-winner tie handling',
-      'GitHub Pages deployment via GitHub Actions CI/CD',
+    date: '9 March 2026',
+    sections: [
+      {
+        heading: 'Core Game',
+        items: [
+          'Draw from the pile or discard, swap with your hand, or discard to end your turn',
+          'Call "End Game" to trigger the final round — every other player gets one more turn',
+          'Lowest total score wins, with bonus recognition for holding 7s',
+        ],
+      },
+      {
+        heading: 'Power Cards',
+        items: [
+          '6 customizable powers assigned to 10, J, Q, K, and Joker',
+          'Peek: look at one of your face-down cards',
+          'Peek All: reveal all three of your cards to yourself',
+          'Swap: exchange any two players\' unlocked cards',
+          'Lock: protect any card from being swapped',
+          'Unlock: free a locked card',
+          'Rearrange: randomly shuffle another player\'s unlocked cards',
+        ],
+      },
+      {
+        heading: 'Multiplayer',
+        items: [
+          'Real-time multiplayer powered by Firebase',
+          'Lobby system with 6-character join codes — share and play instantly',
+          '2-6 players per game',
+        ],
+      },
+      {
+        heading: 'Interface',
+        items: [
+          'Mobile-first responsive design with touch-friendly tap targets',
+          'Three themes: Blue, Dark, and Light',
+          'Sound effects and haptic vibration feedback',
+          'Reduced motion support (follows system preference, or toggle manually)',
+          'Results screen with podium display and multi-winner tie handling',
+        ],
+      },
+      {
+        heading: 'Infrastructure',
+        items: [
+          'Deployed on GitHub Pages with automated CI/CD',
+          'Anonymous authentication — no sign-up required',
+        ],
+      },
     ],
   },
 ]
