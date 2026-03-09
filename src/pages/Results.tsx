@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { useGame } from '../hooks/useGame'
-import { subscribeReveals, revealHand } from '../lib/gameService'
+import { subscribeReveals, revealHand, writeGameSummary } from '../lib/gameService'
 import CardView from '../components/CardView'
 import type { PlayerScore } from '../lib/types'
 
@@ -13,6 +13,7 @@ export default function Results() {
   const { game, players, loading } = useGame(gameId, user?.uid)
   const navigate = useNavigate()
   const [scores, setScores] = useState<PlayerScore[]>([])
+  const summaryWritten = useRef(false)
 
   // Subscribe to reveals in real-time (players reveal asynchronously)
   useEffect(() => {
@@ -27,6 +28,16 @@ export default function Results() {
       revealHand(gameId).catch(console.error)
     }
   }, [gameId, game?.status])
+
+  // Write game summary analytics once (host only, one write per game)
+  useEffect(() => {
+    if (!gameId || !game || !user || summaryWritten.current) return
+    if (game.status !== 'finished') return
+    if (game.hostId !== user.uid) return // only host writes summary
+    if (scores.length < game.playerOrder.length) return // wait for all reveals
+    summaryWritten.current = true
+    writeGameSummary(gameId, scores, game)
+  }, [gameId, game, user, scores])
 
   if (loading || !game) {
     return (

@@ -8,6 +8,7 @@ import {
   runTransaction,
   onSnapshot,
   arrayUnion,
+  increment,
   query,
   where,
   type Unsubscribe,
@@ -333,8 +334,6 @@ export async function cancelDraw(gameId: string): Promise<void> {
     const game = gameSnap.data() as GameDoc
     const privSnap = await tx.get(privateRef(gameId, user.uid))
     const priv = privSnap.data() as PrivatePlayerDoc
-    const pileSnap = await tx.get(drawPileRef(gameId))
-    const pile = pileSnap.data()?.cards as Card[]
 
     if (game.currentTurnPlayerId !== user.uid) throw new Error('Not your turn')
     if (game.turnPhase !== 'action') throw new Error('Not in action phase')
@@ -343,20 +342,14 @@ export async function cancelDraw(gameId: string): Promise<void> {
     const source = priv.drawnCardSource ?? null
     if (!source) throw new Error('Cannot determine draw source')
 
+    // Section 6: Pile draws cannot be undone — only discard draws can be cancelled
+    if (source === 'pile') {
+      throw new Error('Cannot undo a draw from the pile. You must swap, discard, or use a power.')
+    }
+
     const cardToReturn = priv.drawnCard
 
-    if (source === 'pile') {
-      // Put card back on TOP of draw pile
-      const newPile = [cardToReturn, ...pile]
-      tx.update(drawPileRef(gameId), { cards: newPile })
-      tx.update(privateRef(gameId, user.uid), { drawnCard: null, drawnCardSource: null })
-      tx.update(gameRef(gameId), {
-        drawPileCount: newPile.length,
-        turnPhase: 'draw',
-        actionVersion: game.actionVersion + 1,
-        lastActionAt: Date.now(),
-      })
-    } else if (source === 'discard') {
+    if (source === 'discard') {
       // Put card back on discard pile
       tx.update(privateRef(gameId, user.uid), { drawnCard: null, drawnCardSource: null })
       tx.update(gameRef(gameId), {
@@ -802,6 +795,56 @@ export async function revealHand(gameId: string): Promise<void> {
     total,
     sevens,
   })
+}
+
+// ─── Analytics: Game Summary (one write per finished game) ──────
+export async function writeGameSummary(
+  gameId: string,
+  scores: PlayerScore[],
+  game: GameDoc,
+): Promise<void> {
+  try {
+    // Determine winners (min score, sevens tiebreaker)
+    const minScore = scores.length > 0 ? scores[0].total : 0
+    const tied = scores.filter((s) => s.total === minScore)
+    const maxSevens = Math.max(...tied.map((s) => s.sevens), 0)
+    const winners = tied
+      .filter((s) => s.sevens === maxSevens)
+      .map((s) => ({ id: s.playerId, name: s.displayName, score: s.total, sevens: s.sevens }))
+
+    await setDoc(doc(db, 'games', gameId, 'summary', 'result'), {
+      finishedAt: Date.now(),
+      playerCount: game.playerOrder.length,
+      winners,
+      turns: game.actionVersion,
+      deckSize: game.drawPileCount,
+      settings: game.settings,
+    })
+
+    // Global stats counter (single doc, one write)
+    await updateDoc(doc(db, 'stats', 'global'), {
+      gamesPlayed: increment(1),
+      lastGameAt: Date.now(),
+    }).catch(async () => {
+      // Doc may not exist yet — create it
+      await setDoc(doc(db, 'stats', 'global'), { gamesPlayed: 1, lastGameAt: Date.now() })
+    })
+  } catch (e) {
+    console.error('Analytics write failed (non-critical):', e)
+  }
+}
+
+// ─── Presence (throttled) ─────────────────────────────────────────
+let lastPresenceWrite = 0
+const PRESENCE_THROTTLE_MS = 60_000 // 60 seconds
+
+export async function updatePresenceThrottled(gameId: string, connected: boolean): Promise<void> {
+  const now = Date.now()
+  // Always allow disconnection writes; throttle connection writes
+  if (connected && now - lastPresenceWrite < PRESENCE_THROTTLE_MS) return
+  lastPresenceWrite = now
+  const user = await ensureAuth()
+  await updateDoc(playerRef(gameId, user.uid), { connected })
 }
 
 // ─── Subscriptions ──────────────────────────────────────────────

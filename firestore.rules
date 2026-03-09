@@ -46,33 +46,17 @@ service cloud.firestore {
 
       // ─── Private Player Data ────────────────────────────────
       match /private/{playerId} {
-        // Any authenticated player in the game can read private data.
-        // This is needed for Queen (swap two cards across players) and
-        // Joker (shuffle another player's cards) power transactions.
-        // Client-side subscription only subscribes to own private doc,
-        // so other players' hands are not exposed in the UI — they are
-        // only accessed server-side within Firestore transactions.
         allow read: if request.auth != null;
-
-        // Any authenticated player can create/update private docs
-        // (needed for: joining creates own doc, startGame deals to all,
-        //  draw/swap/peek updates own doc via transactions)
-        // Client transaction logic enforces correctness.
         allow create: if request.auth != null;
         allow update: if request.auth != null;
-
         allow delete: if false;
       }
 
       // ─── Reveals (each player writes their own hand at game end) ──
       match /reveals/{playerId} {
-        // Anyone can read reveals (they're shown on the results screen)
         allow read: if request.auth != null;
-
-        // A player can only create/update their own reveal
         allow create, update: if request.auth != null
           && request.auth.uid == playerId;
-
         allow delete: if false;
       }
 
@@ -82,6 +66,33 @@ service cloud.firestore {
         allow create, update: if request.auth != null;
         allow delete: if false;
       }
+
+      // ─── Game Summary (analytics, written once at game end) ────
+      match /summary/{docId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null;
+        allow delete: if false;
+      }
+
+      // ─── Chat (in-game messaging) ─────────────────────────────
+      match /chat/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
+    }
+
+    // ─── Global Stats ─────────────────────────────────────────
+    match /stats/{docId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // ─── Feedback ─────────────────────────────────────────────
+    match /feedback/{docId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false;
     }
 
     // Deny everything else
