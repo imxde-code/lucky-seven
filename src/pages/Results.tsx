@@ -1,0 +1,128 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useAuth } from '../hooks/useAuth'
+import { useGame } from '../hooks/useGame'
+import { getResults } from '../lib/gameService'
+import CardView from '../components/CardView'
+import type { PlayerScore } from '../lib/types'
+
+export default function Results() {
+  const { gameId } = useParams<{ gameId: string }>()
+  const { user } = useAuth()
+  const { game, loading } = useGame(gameId, user?.uid)
+  const navigate = useNavigate()
+  const [scores, setScores] = useState<PlayerScore[]>([])
+
+  useEffect(() => {
+    if (!gameId) return
+    getResults(gameId).then(setScores).catch(console.error)
+  }, [gameId])
+
+  if (loading || !game) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-8 h-8 border-2 border-slate-400 border-t-transparent rounded-full"
+        />
+      </div>
+    )
+  }
+
+  const winnerScore = scores.length > 0 ? scores[0].total : null
+  const winners = scores.filter(
+    (s) => s.total === winnerScore && (scores[0].sevens === s.sevens || s.total !== winnerScore)
+  )
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-2xl"
+      >
+        <div className="text-center mb-6">
+          <motion.h1
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            className="text-4xl font-bold text-amber-300 mb-2"
+          >
+            Game Over!
+          </motion.h1>
+          {game.endCalledBy && (
+            <p className="text-slate-400 text-sm">Game ended by a player</p>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {scores.map((score, rank) => {
+            const isWinner = rank === 0 || (score.total === winnerScore && score.sevens === winners[0]?.sevens)
+            const isYou = score.playerId === user?.uid
+
+            return (
+              <motion.div
+                key={score.playerId}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: rank * 0.15 }}
+                className={`
+                  rounded-2xl p-4 border
+                  ${isWinner
+                    ? 'bg-amber-900/30 border-amber-500/50 shadow-lg shadow-amber-500/10'
+                    : 'bg-slate-800/40 border-slate-700/50'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold
+                    ${isWinner
+                      ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-amber-900'
+                      : 'bg-slate-700 text-slate-400'
+                    }
+                  `}>
+                    {rank + 1}
+                  </div>
+                  <div>
+                    <span className={`font-semibold ${isYou ? 'text-amber-300' : 'text-slate-200'}`}>
+                      {score.displayName}
+                      {isYou && <span className="text-xs text-amber-500/70 ml-1">(You)</span>}
+                    </span>
+                    {isWinner && (
+                      <span className="block text-xs text-amber-400 font-medium">Winner!</span>
+                    )}
+                  </div>
+                  <div className="ml-auto text-right">
+                    <span className={`text-2xl font-bold ${isWinner ? 'text-amber-300' : 'text-slate-300'}`}>
+                      {score.total}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      {score.sevens > 0 ? `${score.sevens} seven${score.sevens > 1 ? 's' : ''}` : 'no sevens'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-center">
+                  {score.hand.map((card, i) => (
+                    <CardView key={i} card={card} faceUp size="md" />
+                  ))}
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        <div className="text-center mt-6">
+          <button
+            onClick={() => navigate('/')}
+            className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl font-semibold transition-all cursor-pointer"
+          >
+            Play Again
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
