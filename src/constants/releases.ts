@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = 'v1.1'
+export const CURRENT_VERSION = 'v1.2'
 
 export interface ReleaseNote {
   version: string
@@ -8,6 +8,45 @@ export interface ReleaseNote {
 }
 
 export const RELEASES: ReleaseNote[] = [
+  {
+    version: 'v1.2',
+    title: 'Polish & Presence Update',
+    date: '10 March 2026',
+    sections: [
+      {
+        heading: 'Animations',
+        items: [
+          'Flying cards now travel along smooth curved arcs with drop shadows',
+          'Enhanced action highlights: stronger glow with expanding pulse ring effect',
+          'All motion effects respect reduced motion preferences',
+        ],
+      },
+      {
+        heading: 'Chat & Social',
+        items: [
+          'Chat bubbles: see other players\' latest messages floating above their panels',
+          'Bubbles auto-fade after 4 seconds — no extra database usage',
+          'Hardened chat security: messages validated server-side (userId + text length)',
+        ],
+      },
+      {
+        heading: 'Gameplay Clarity',
+        items: [
+          'Queue numbers (#1, #2, #3...) now shown beside each player\'s name',
+          '"Pile draw — no undo" label on drawn card modal for pile draws',
+          'Resume banner: tap to return to your drawn card after using a power',
+        ],
+      },
+      {
+        heading: 'Quality of Life',
+        items: [
+          'Feedback form now available on the Home screen (was lobby only)',
+          '5-second cooldown between feedback submissions to prevent spam',
+          'Strengthened Firestore security rules across all collections',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.1',
     title: 'Signal & Flow Update',
