@@ -936,7 +936,7 @@ export async function updatePresence(gameId: string, connected: boolean): Promis
 
 // ─── Chat ──────────────────────────────────────────────────────
 const CHAT_MAX = 50 // max messages kept in view
-const CHAT_THROTTLE_MS = 1500 // min interval between sends per user
+const CHAT_THROTTLE_MS = 2000 // min interval between sends per user (1 msg / 2s)
 let lastChatSend = 0
 
 export async function sendChatMessage(
@@ -956,7 +956,7 @@ export async function sendChatMessage(
     userId: user.uid,
     displayName,
     seatIndex,
-    text: text.slice(0, 200), // hard cap at 200 chars
+    text: text.slice(0, 300), // hard cap at 300 chars (matches Firestore rules)
     ts: now,
   })
 }

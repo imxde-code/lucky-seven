@@ -7,18 +7,22 @@ export interface ActionHighlightInfo {
   label: string
 }
 
+/** Per-slot overlay: playerId → slotIndex → color */
+export type SlotOverlayMap = Record<string, Record<number, string>>
+
 type HighlightMap = Record<string, ActionHighlightInfo | null>
 
 /**
  * Watches actionVersion changes and parses the latest log entry
- * to produce temporary per-player highlights that auto-clear.
+ * to produce temporary per-player highlights + per-slot overlays that auto-clear.
  */
 export function useActionHighlight(
   actionVersion: number,
   log: LogEntry[],
   players: Record<string, PlayerDoc>,
-): HighlightMap {
+): { highlights: HighlightMap; slotOverlays: SlotOverlayMap } {
   const [highlights, setHighlights] = useState<HighlightMap>({})
+  const [slotOverlays, setSlotOverlays] = useState<SlotOverlayMap>({})
   const prevVersion = useRef(actionVersion)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -62,16 +66,90 @@ export function useActionHighlight(
 
     setHighlights({ [actorId]: { color: color.solid, label } })
 
+    // Parse slot-level overlays from log message
+    const newSlotOverlays: SlotOverlayMap = {}
+
+    // "swapped their card #N" → actor's own slot N-1
+    const selfSwapMatch = msg.match(/swapped their card #(\d)/)
+    if (selfSwapMatch) {
+      const slot = parseInt(selfSwapMatch[1], 10) - 1
+      newSlotOverlays[actorId] = { [slot]: color.solid }
+    }
+
+    // "as swap: PlayerA's #X ↔ PlayerB's #Y"
+    const queenSwapMatch = msg.match(/as swap:\s*(.+)'s #(\d)\s*↔\s*(.+)'s #(\d)/)
+    if (queenSwapMatch) {
+      const nameA = queenSwapMatch[1]
+      const slotA = parseInt(queenSwapMatch[2], 10) - 1
+      const nameB = queenSwapMatch[3]
+      const slotB = parseInt(queenSwapMatch[4], 10) - 1
+      for (const [pid, pd] of Object.entries(players)) {
+        if (pd.displayName === nameA) {
+          newSlotOverlays[pid] = { ...newSlotOverlays[pid], [slotA]: color.solid }
+        }
+        if (pd.displayName === nameB) {
+          newSlotOverlays[pid] = { ...newSlotOverlays[pid], [slotB]: color.solid }
+        }
+      }
+    }
+
+    // "as lock on TARGET's card #N" or "their own card #N"
+    const lockMatch = msg.match(/as lock on (.+?) card #(\d)/)
+    if (lockMatch) {
+      const targetName = lockMatch[1] === 'their own' ? null : lockMatch[1].replace(/'s$/, '')
+      const slot = parseInt(lockMatch[2], 10) - 1
+      if (targetName) {
+        for (const [pid, pd] of Object.entries(players)) {
+          if (pd.displayName === targetName) {
+            newSlotOverlays[pid] = { [slot]: color.solid }
+          }
+        }
+      } else {
+        newSlotOverlays[actorId] = { [slot]: color.solid }
+      }
+    }
+
+    // "as unlock on TARGET's card #N" or "their own card #N"
+    const unlockMatch = msg.match(/as unlock on (.+?) card #(\d)/)
+    if (unlockMatch) {
+      const targetName = unlockMatch[1] === 'their own' ? null : unlockMatch[1].replace(/'s$/, '')
+      const slot = parseInt(unlockMatch[2], 10) - 1
+      if (targetName) {
+        for (const [pid, pd] of Object.entries(players)) {
+          if (pd.displayName === targetName) {
+            newSlotOverlays[pid] = { [slot]: color.solid }
+          }
+        }
+      } else {
+        newSlotOverlays[actorId] = { [slot]: color.solid }
+      }
+    }
+
+    // "as rearrange on PlayerName's cards"
+    const rearrangeMatch = msg.match(/as rearrange on (.+?)'s cards/)
+    if (rearrangeMatch) {
+      const targetName = rearrangeMatch[1]
+      for (const [pid, pd] of Object.entries(players)) {
+        if (pd.displayName === targetName) {
+          // Highlight all 3 slots
+          newSlotOverlays[pid] = { 0: color.solid, 1: color.solid, 2: color.solid }
+        }
+      }
+    }
+
+    setSlotOverlays(newSlotOverlays)
+
     // Clear previous timer
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
       setHighlights({})
-    }, 1500)
+      setSlotOverlays({})
+    }, 1800)
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [actionVersion, log, players])
 
-  return highlights
+  return { highlights, slotOverlays }
 }

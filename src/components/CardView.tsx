@@ -109,7 +109,12 @@ export default function CardView({
           )}
         </motion.div>
       ) : (
-        <div className="card-shimmer absolute inset-0 rounded-xl">
+        <div
+          className="card-shimmer absolute inset-0 rounded-xl"
+          style={ownerColor ? {
+            '--shimmer-color': ownerColor,
+          } as React.CSSProperties : undefined}
+        >
           <div className="flex items-center justify-center h-full">
             <div
               className="w-8 h-8 rounded-full border-2 flex items-center justify-center"

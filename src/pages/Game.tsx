@@ -41,6 +41,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useChat } from '../hooks/useChat'
 import { useChatBubbles } from '../hooks/useChatBubbles'
 import { getSeatColor } from '../lib/playerColors'
+import { useLayout } from '../hooks/useLayout'
 import { playSfx, vibrate } from '../lib/sfx'
 import type { Card, PowerEffectType, PowerRankKey, PlayerDoc } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS } from '../lib/types'
@@ -63,9 +64,11 @@ export default function Game() {
 
   const [busy, setBusy] = useState(false)
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
+  const [drawnCardDismissed, setDrawnCardDismissed] = useState(false)
   const [showPowerGuide, setShowPowerGuide] = useState(false)
   const revealedRef = useRef(false)
   const { reduced } = useReducedMotion()
+  const { layout, toggle: toggleLayout } = useLayout()
   const { flyingCard, triggerFly, clearFly } = useFlyingCard()
   const drawPileRef = useRef<HTMLDivElement>(null)
   const discardPileRef = useRef<HTMLDivElement>(null)
@@ -100,6 +103,11 @@ export default function Game() {
   const drawnCard = privateState?.drawnCard ?? null
   const hasDrawnCard = !!drawnCard
 
+  // Reset dismissed state when drawn card is consumed/cleared
+  useEffect(() => {
+    if (!hasDrawnCard) setDrawnCardDismissed(false)
+  }, [hasDrawnCard])
+
   // When game becomes finished, reveal own hand then redirect
   useEffect(() => {
     if (game?.status === 'finished' && gameId && user && !revealedRef.current) {
@@ -127,8 +135,8 @@ export default function Game() {
   const spentPowerCardIds = game?.spentPowerCardIds ?? {}
   const myKnown = privateState?.known ?? {}
 
-  // Action highlights (temporary colored ring on actor's panel)
-  const actionHighlights = useActionHighlight(
+  // Action highlights (temporary colored ring on actor's panel + per-slot overlays)
+  const { highlights: actionHighlights, slotOverlays } = useActionHighlight(
     game?.actionVersion ?? 0,
     game?.log ?? [],
     players,
@@ -177,11 +185,12 @@ export default function Game() {
       if (fromEl) {
         triggerFly(fromEl.getBoundingClientRect(), toRect, true, game?.discardTop ?? null, actorColor)
       }
-    } else if (msg.includes('discarded')) {
+    } else if (msg.includes('discarded') || msg.includes('swapped their card')) {
       const fromEl = otherPanelRefs.current[actorId]
       const toEl = discardPileRef.current
       if (fromEl && toEl) {
-        triggerFly(fromEl.getBoundingClientRect(), toEl.getBoundingClientRect(), false, null, actorColor)
+        // Discarded/swapped card goes to discard pile — show face-up since it's now the discard top
+        triggerFly(fromEl.getBoundingClientRect(), toEl.getBoundingClientRect(), true, game?.discardTop ?? null, actorColor)
       }
     }
   }, [game?.actionVersion, game?.log, players, user?.uid, reduced, triggerFly, game?.discardTop])
@@ -408,6 +417,14 @@ export default function Game() {
             >
               ?
             </button>
+            <button
+              onClick={toggleLayout}
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center px-2 rounded-lg text-xs font-bold bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:bg-slate-700/60 transition-colors cursor-pointer"
+              aria-label={`Switch to ${layout === 'classic' ? 'table' : 'classic'} layout`}
+              title={`Layout: ${layout === 'classic' ? 'Classic' : 'Table'}`}
+            >
+              {layout === 'classic' ? '\u{1FA91}' : '\u{1F4CB}'}
+            </button>
             <GameSettingsBar />
             {isMyTurn && game.status === 'active' && !hasDrawnCard && (
               <button
@@ -422,8 +439,8 @@ export default function Game() {
         </div>
       </div>
 
-      {/* ─── Resume banner — visible when drawn card exists but sub-modal is active ─── */}
-      {hasDrawnCard && isActionPhase && modal.type !== 'none' && (
+      {/* ─── Resume banner — visible when drawn card exists but modal is dismissed or sub-modal is active ─── */}
+      {hasDrawnCard && isActionPhase && (modal.type !== 'none' || drawnCardDismissed) && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -431,7 +448,7 @@ export default function Game() {
           className="mx-3 md:mx-4 mt-2"
         >
           <button
-            onClick={() => setModal({ type: 'none' })}
+            onClick={() => { setModal({ type: 'none' }); setDrawnCardDismissed(false) }}
             className="w-full py-2 px-4 bg-amber-900/40 border border-amber-600/50 rounded-xl text-amber-300 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-amber-900/60 transition-colors cursor-pointer"
           >
             <span className="text-sm">{'\u{1F0A0}'}</span>
@@ -471,85 +488,211 @@ export default function Game() {
           )}
         </motion.div>
 
-        {/* Other players */}
-        {otherPlayers.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-            {otherPlayers.map((pid) => (
-              <div
-                key={pid}
-                ref={(el) => { otherPanelRefs.current[pid] = el }}
-              >
-                <PlayerPanel
-                  playerId={pid}
-                  displayName={players[pid]?.displayName ?? 'Unknown'}
-                  isCurrentTurn={game.currentTurnPlayerId === pid}
-                  isLocalPlayer={false}
-                  seatIndex={players[pid]?.seatIndex ?? 0}
-                  connected={players[pid]?.connected ?? false}
-                  locks={players[pid]?.locks ?? [false, false, false]}
-                  lockedBy={players[pid]?.lockedBy}
-                  actionHighlight={actionHighlights[pid] ?? null}
-                  chatBubble={chatBubbles[pid] ?? null}
-                  queueNumber={queueNumbers[pid] ?? null}
+        {layout === 'table' ? (
+          /* ─── TABLE LAYOUT ─── Poker-table circular arrangement ─── */
+          <div className="relative w-full mb-4" style={{ minHeight: otherPlayers.length <= 3 ? '420px' : '480px' }}>
+            {/* Table surface — oval gradient */}
+            <div
+              className="absolute inset-4 rounded-[50%] pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(15,76,46,0.35) 0%, rgba(15,76,46,0.15) 50%, transparent 80%)',
+                border: '2px solid rgba(15,76,46,0.2)',
+              }}
+            />
+
+            {/* Center: Draw + Discard piles */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4 z-10">
+              <div className="text-center" ref={drawPileRef}>
+                <p className="text-[10px] text-slate-500 mb-1">Draw</p>
+                <CardView
+                  faceUp={false}
+                  size="md"
+                  onClick={canDraw ? handleDrawPile : undefined}
+                  disabled={!canDraw}
+                  highlight={canDraw}
+                  label={`${game.drawPileCount}`}
                 />
               </div>
-            ))}
-          </div>
-        )}
+              <div className="text-center" ref={discardPileRef}>
+                <p className="text-[10px] text-slate-500 mb-1">Discard</p>
+                {game.discardTop ? (
+                  <CardView
+                    card={game.discardTop}
+                    faceUp
+                    size="md"
+                    onClick={canDraw ? handleTakeDiscard : undefined}
+                    disabled={!canDraw}
+                    highlight={canDraw}
+                  />
+                ) : (
+                  <div className="w-20 h-28 rounded-xl border-2 border-dashed border-slate-700 flex items-center justify-center">
+                    <span className="text-slate-600 text-[10px]">Empty</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
-        {/* Table area: Draw + Discard */}
-        <div className="flex items-center justify-center gap-8 mb-6 py-4">
-          {/* Draw pile */}
-          <div className="text-center" ref={drawPileRef}>
-            <p className="text-xs text-slate-500 mb-2">Draw Pile</p>
-            <CardView
-              faceUp={false}
-              size="lg"
-              onClick={canDraw ? handleDrawPile : undefined}
-              disabled={!canDraw}
-              highlight={canDraw}
-              label={`${game.drawPileCount} left`}
-            />
-          </div>
+            {/* Other players arranged around the table */}
+            {otherPlayers.map((pid, idx) => {
+              // Calculate seat position around the top half of the table
+              // Distribute other players evenly across the top arc (from left to right)
+              const count = otherPlayers.length
+              // Spread across top arc: angles from ~160° (left) to ~20° (right), going clockwise
+              // 180° = left, 90° = top, 0° = right
+              const startAngle = Math.PI * 0.85 // ~153°
+              const endAngle = Math.PI * 0.15   // ~27°
+              const angle = count === 1
+                ? Math.PI / 2 // single opponent at top
+                : startAngle - (idx / (count - 1)) * (startAngle - endAngle)
 
-          {/* Discard pile */}
-          <div className="text-center" ref={discardPileRef}>
-            <p className="text-xs text-slate-500 mb-2">Discard</p>
-            {game.discardTop ? (
-              <CardView
-                card={game.discardTop}
-                faceUp
-                size="lg"
-                onClick={canDraw ? handleTakeDiscard : undefined}
-                disabled={!canDraw}
-                highlight={canDraw}
+              // Ellipse radii (responsive)
+              const rx = 46 // % of container width
+              const ry = 42 // % of container height
+
+              const left = 50 + rx * Math.cos(angle)
+              const top = 50 - ry * Math.sin(angle)
+
+              return (
+                <div
+                  key={pid}
+                  ref={(el) => { otherPanelRefs.current[pid] = el }}
+                  className="absolute z-10"
+                  style={{
+                    left: `${left}%`,
+                    top: `${top}%`,
+                    transform: 'translate(-50%, -50%)',
+                    maxWidth: count <= 4 ? '200px' : '170px',
+                    width: count <= 4 ? '42%' : '32%',
+                  }}
+                >
+                  <PlayerPanel
+                    playerId={pid}
+                    displayName={players[pid]?.displayName ?? 'Unknown'}
+                    isCurrentTurn={game.currentTurnPlayerId === pid}
+                    isLocalPlayer={false}
+                    seatIndex={players[pid]?.seatIndex ?? 0}
+                    connected={players[pid]?.connected ?? false}
+                    locks={players[pid]?.locks ?? [false, false, false]}
+                    lockedBy={players[pid]?.lockedBy}
+                    actionHighlight={actionHighlights[pid] ?? null}
+                    chatBubble={chatBubbles[pid] ?? null}
+                    queueNumber={queueNumbers[pid] ?? null}
+                    slotOverlays={slotOverlays[pid] ?? null}
+                  />
+                </div>
+              )
+            })}
+
+            {/* Local player at bottom center */}
+            <div
+              className="absolute left-1/2 bottom-0 -translate-x-1/2 z-10"
+              ref={localPanelRef}
+              style={{ maxWidth: '320px', width: '80%' }}
+            >
+              <PlayerPanel
+                playerId={user.uid}
+                displayName={players[user.uid]?.displayName ?? 'You'}
+                isCurrentTurn={isMyTurn}
+                isLocalPlayer
+                privateState={privateState}
+                seatIndex={players[user.uid]?.seatIndex ?? 0}
+                connected
+                locks={myLocks}
+                lockedBy={myPlayer?.lockedBy}
+                onSlotClick={isActionPhase ? handleSwap : undefined}
+                slotClickable={isActionPhase && hasDrawnCard}
+                actionHighlight={actionHighlights[user.uid] ?? null}
+                queueNumber={queueNumbers[user.uid] ?? null}
+                slotOverlays={slotOverlays[user.uid] ?? null}
               />
-            ) : (
-              <div className="w-24 h-34 rounded-xl border-2 border-dashed border-slate-700 flex items-center justify-center">
-                <span className="text-slate-600 text-xs">Empty</span>
+            </div>
+          </div>
+        ) : (
+          /* ─── CLASSIC LAYOUT ─── Original grid layout ─── */
+          <>
+            {/* Other players */}
+            {otherPlayers.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                {otherPlayers.map((pid) => (
+                  <div
+                    key={pid}
+                    ref={(el) => { otherPanelRefs.current[pid] = el }}
+                  >
+                    <PlayerPanel
+                      playerId={pid}
+                      displayName={players[pid]?.displayName ?? 'Unknown'}
+                      isCurrentTurn={game.currentTurnPlayerId === pid}
+                      isLocalPlayer={false}
+                      seatIndex={players[pid]?.seatIndex ?? 0}
+                      connected={players[pid]?.connected ?? false}
+                      locks={players[pid]?.locks ?? [false, false, false]}
+                      lockedBy={players[pid]?.lockedBy}
+                      actionHighlight={actionHighlights[pid] ?? null}
+                      chatBubble={chatBubbles[pid] ?? null}
+                      queueNumber={queueNumbers[pid] ?? null}
+                      slotOverlays={slotOverlays[pid] ?? null}
+                    />
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Local player */}
-        <div className="mb-4" ref={localPanelRef}>
-          <PlayerPanel
-            playerId={user.uid}
-            displayName={players[user.uid]?.displayName ?? 'You'}
-            isCurrentTurn={isMyTurn}
-            isLocalPlayer
-            privateState={privateState}
-            seatIndex={players[user.uid]?.seatIndex ?? 0}
-            connected
-            locks={myLocks}
-            lockedBy={myPlayer?.lockedBy}
-            onSlotClick={isActionPhase ? handleSwap : undefined}
-            slotClickable={isActionPhase && hasDrawnCard}
-            actionHighlight={actionHighlights[user.uid] ?? null}
-            queueNumber={queueNumbers[user.uid] ?? null}
-          />
-        </div>
+            {/* Table area: Draw + Discard */}
+            <div className="flex items-center justify-center gap-8 mb-6 py-4">
+              {/* Draw pile */}
+              <div className="text-center" ref={drawPileRef}>
+                <p className="text-xs text-slate-500 mb-2">Draw Pile</p>
+                <CardView
+                  faceUp={false}
+                  size="lg"
+                  onClick={canDraw ? handleDrawPile : undefined}
+                  disabled={!canDraw}
+                  highlight={canDraw}
+                  label={`${game.drawPileCount} left`}
+                />
+              </div>
+
+              {/* Discard pile */}
+              <div className="text-center" ref={discardPileRef}>
+                <p className="text-xs text-slate-500 mb-2">Discard</p>
+                {game.discardTop ? (
+                  <CardView
+                    card={game.discardTop}
+                    faceUp
+                    size="lg"
+                    onClick={canDraw ? handleTakeDiscard : undefined}
+                    disabled={!canDraw}
+                    highlight={canDraw}
+                  />
+                ) : (
+                  <div className="w-24 h-34 rounded-xl border-2 border-dashed border-slate-700 flex items-center justify-center">
+                    <span className="text-slate-600 text-xs">Empty</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Local player */}
+            <div className="mb-4" ref={localPanelRef}>
+              <PlayerPanel
+                playerId={user.uid}
+                displayName={players[user.uid]?.displayName ?? 'You'}
+                isCurrentTurn={isMyTurn}
+                isLocalPlayer
+                privateState={privateState}
+                seatIndex={players[user.uid]?.seatIndex ?? 0}
+                connected
+                locks={myLocks}
+                lockedBy={myPlayer?.lockedBy}
+                onSlotClick={isActionPhase ? handleSwap : undefined}
+                slotClickable={isActionPhase && hasDrawnCard}
+                actionHighlight={actionHighlights[user.uid] ?? null}
+                queueNumber={queueNumbers[user.uid] ?? null}
+                slotOverlays={slotOverlays[user.uid] ?? null}
+              />
+            </div>
+          </>
+        )}
 
         {/* Game Log */}
         <GameLog log={game.log} players={players} />
@@ -560,7 +703,7 @@ export default function Game() {
       {/* Drawn Card Modal (main action chooser) — open whenever drawnCard exists */}
       <DrawnCardModal
         card={isActionPhase ? drawnCard : null}
-        open={modal.type === 'none'}
+        open={modal.type === 'none' && !drawnCardDismissed}
         locks={myLocks}
         powerAssignments={powerAssignments}
         spentPowerCardIds={spentPowerCardIds}
@@ -570,6 +713,7 @@ export default function Game() {
         onDiscard={handleDiscard}
         onUsePower={handleUsePower}
         onClose={handleCancelDraw}
+        onDismiss={() => setDrawnCardDismissed(true)}
       />
 
       {/* Effect: peek_one — slot picker */}

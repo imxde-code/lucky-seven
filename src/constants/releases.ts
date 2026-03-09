@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = 'v1.2'
+export const CURRENT_VERSION = 'v1.3'
 
 export interface ReleaseNote {
   version: string
@@ -8,6 +8,48 @@ export interface ReleaseNote {
 }
 
 export const RELEASES: ReleaseNote[] = [
+  {
+    version: 'v1.3',
+    title: 'Table & Effects Update',
+    date: '10 March 2026',
+    sections: [
+      {
+        heading: 'Table Layout',
+        items: [
+          'New poker-table layout: toggle between Classic and Table views during gameplay',
+          'Players arranged in a circular formation around the table with your hand at the bottom',
+          'Draw and discard piles centered on the table surface',
+          'Flying card animations travel accurately to seat positions in both layouts',
+        ],
+      },
+      {
+        heading: 'Visual Effects',
+        items: [
+          'Card back shimmer now uses the card owner\'s seat color',
+          'Active player panels glow softly with their assigned color during their turn',
+          'Slot-level effect overlays: swapped, locked, and unlocked cards pulse briefly with the actor\'s color',
+          'Discarded/swapped cards animate face-up to the discard pile for all viewers',
+        ],
+      },
+      {
+        heading: 'Gameplay',
+        items: [
+          'Pile draws can now be dismissed — minimize the modal and resume via the banner',
+          'Discard draws show an explicit "Cancel Take" button to return the card',
+          'Chat opens by default on desktop; preference saved in localStorage',
+          'Chat rate limit enforced at 1 message per 2 seconds',
+        ],
+      },
+      {
+        heading: 'Quality of Life',
+        items: [
+          'Layout preference persists across sessions via localStorage',
+          'Chat text limit aligned to 300 characters (matching security rules)',
+          'All new animations respect reduced motion preferences',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.2',
     title: 'Polish & Presence Update',
@@ -92,14 +134,14 @@ export const RELEASES: ReleaseNote[] = [
   },
   {
     version: 'v1.0',
-    title: 'Lucky Seven — Launch',
+    title: 'Lucky Seven \u2014 Launch',
     date: '9 March 2026',
     sections: [
       {
         heading: 'Core Game',
         items: [
           'Draw from the pile or discard, swap with your hand, or discard to end your turn',
-          'Call "End Game" to trigger the final round — every other player gets one more turn',
+          'Call "End Game" to trigger the final round \u2014 every other player gets one more turn',
           'Lowest total score wins, with bonus recognition for holding 7s',
         ],
       },
@@ -119,8 +161,8 @@ export const RELEASES: ReleaseNote[] = [
         heading: 'Multiplayer',
         items: [
           'Real-time multiplayer powered by Firebase',
-          'Lobby system with 6-character join codes — share and play instantly',
-          '2-6 players per game',
+          'Lobby system with 6-character join codes \u2014 share and play instantly',
+          '2-8 players per game',
         ],
       },
       {
@@ -134,10 +176,12 @@ export const RELEASES: ReleaseNote[] = [
         ],
       },
       {
-        heading: 'Infrastructure',
+        heading: 'Credits',
         items: [
+          'Created by Kamal Hazriq',
+          'Idea by Imaduddin',
           'Deployed on GitHub Pages with automated CI/CD',
-          'Anonymous authentication — no sign-up required',
+          'Anonymous authentication \u2014 no sign-up required',
         ],
       },
     ],

@@ -85,7 +85,8 @@ body {
 }
 
 .card-shimmer {
-  background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
+  --shimmer-color: rgba(255,255,255,0.08);
+  background: linear-gradient(90deg, transparent 30%, var(--shimmer-color) 50%, transparent 70%);
   background-size: 200% 100%;
   animation: shimmer 3s infinite;
 }
@@ -107,9 +108,33 @@ select option {
   animation: pulse-ring 0.6s ease-out 2;
 }
 
+/* Slot-level pulse ring for effect overlays */
+@keyframes slot-pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.slot-pulse-ring {
+  animation: slot-pulse 0.5s ease-out 3;
+}
+
+/* Turn glow animation for active player panel */
+@keyframes turn-glow {
+  0% { box-shadow: 0 0 8px var(--turn-glow-color, rgba(16,185,129,0.3)); }
+  50% { box-shadow: 0 0 20px var(--turn-glow-color, rgba(16,185,129,0.5)), 0 0 40px var(--turn-glow-color, rgba(16,185,129,0.15)); }
+  100% { box-shadow: 0 0 8px var(--turn-glow-color, rgba(16,185,129,0.3)); }
+}
+
+.turn-glow {
+  animation: turn-glow 2s ease-in-out infinite;
+}
+
 /* Respect prefers-reduced-motion at CSS level */
 @media (prefers-reduced-motion: reduce) {
   .card-shimmer { animation: none; }
   .animate-pulse { animation: none; }
   .action-pulse-ring { animation: none; }
+  .turn-glow { animation: none; }
+  .slot-pulse-ring { animation: none; }
 }

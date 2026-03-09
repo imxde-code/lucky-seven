@@ -144,7 +144,7 @@ export default function ChatPanel({ open, messages, localUserId, onSend, onClose
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              maxLength={200}
+              maxLength={300}
               className="flex-1 px-3 py-2 bg-slate-900/80 border border-slate-600/60 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-amber-500/60"
             />
             <button

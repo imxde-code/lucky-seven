@@ -17,7 +17,10 @@ interface DrawnCardModalProps {
   onSwap: (slotIndex: number) => void
   onDiscard: () => void
   onUsePower: (rankKey: PowerRankKey, effectType: PowerEffectType) => void
+  /** Cancel draw — only for discard source (returns card to discard pile) */
   onClose: () => void
+  /** Dismiss modal — hides it without canceling; for pile draws user can view the board */
+  onDismiss?: () => void
 }
 
 export default function DrawnCardModal({
@@ -32,6 +35,7 @@ export default function DrawnCardModal({
   onDiscard,
   onUsePower,
   onClose,
+  onDismiss,
 }: DrawnCardModalProps) {
   const rankKey = card ? getCardRankKey(card) : null
   const effectType = rankKey ? (powerAssignments ?? DEFAULT_POWER_ASSIGNMENTS)[rankKey] : null
@@ -39,17 +43,26 @@ export default function DrawnCardModal({
   const rankLabel = rankKey === 'JOKER' ? 'Joker' : rankKey
   const isSpent = card ? !!spentPowerCardIds[card.id] : false
   const canCancel = drawnCardSource === 'discard'
+  const isPileDraw = drawnCardSource === 'pile'
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && canCancel) onClose()
-  }, [onClose, canCancel])
+    if (e.key === 'Escape') {
+      if (canCancel) onClose()
+      else if (isPileDraw && onDismiss) onDismiss()
+    }
+  }, [onClose, onDismiss, canCancel, isPileDraw])
 
   useEffect(() => {
-    if (open) {
+    if (open && card) {
       document.addEventListener('keydown', handleKeyDown)
       return () => document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open, handleKeyDown])
+  }, [open, card, handleKeyDown])
+
+  const handleBackdropClick = () => {
+    if (canCancel) onClose()
+    else if (isPileDraw && onDismiss) onDismiss()
+  }
 
   return (
     <AnimatePresence>
@@ -59,7 +72,7 @@ export default function DrawnCardModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={canCancel ? onClose : undefined}
+          onClick={handleBackdropClick}
         >
           <motion.div
             initial={{ scale: 0.8, y: 40 }}
@@ -68,7 +81,7 @@ export default function DrawnCardModal({
             className="bg-slate-800 border border-slate-600 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button — only for discard-sourced draws (pile draws cannot be undone) */}
+            {/* Close button — behavior differs by source */}
             {canCancel ? (
               <button
                 onClick={onClose}
@@ -79,9 +92,14 @@ export default function DrawnCardModal({
                 &times;
               </button>
             ) : (
-              <div className="absolute top-3 right-3 px-2 py-1 bg-slate-700/60 text-slate-500 text-[9px] font-semibold rounded-md select-none">
-                Pile draw — no undo
-              </div>
+              <button
+                onClick={onDismiss}
+                className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-slate-700/60 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-[9px] font-semibold rounded-md transition-colors cursor-pointer"
+                title="Minimize — tap resume banner to return"
+              >
+                <span className="text-xs">&minus;</span>
+                Pile draw
+              </button>
             )}
 
             <h3 className="text-center text-lg font-semibold text-slate-200 mb-4">
@@ -163,6 +181,15 @@ export default function DrawnCardModal({
                   <span className="block text-xs opacity-80 mt-0.5">
                     {isSpent ? 'Power already used for this card.' : effectInfo.desc}
                   </span>
+                </button>
+              )}
+
+              {canCancel && (
+                <button
+                  onClick={onClose}
+                  className="w-full py-2 bg-rose-900/30 hover:bg-rose-900/50 border border-rose-700/40 text-rose-300 rounded-lg text-xs font-medium transition-colors cursor-pointer mt-2"
+                >
+                  Cancel Take (return to discard)
                 </button>
               )}
             </div>

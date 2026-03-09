@@ -26,6 +26,8 @@ interface PlayerPanelProps {
   chatBubble?: string | null
   /** Queue number (1 = current turn, 2 = next, etc.) */
   queueNumber?: number | null
+  /** Per-slot effect overlays: slotIndex → color (actor's color) */
+  slotOverlays?: Record<number, string> | null
 }
 
 const EMPTY_LOCKED_BY: [LockInfo, LockInfo, LockInfo] = [
@@ -48,6 +50,7 @@ export default function PlayerPanel({
   actionHighlight,
   chatBubble,
   queueNumber,
+  slotOverlays,
 }: PlayerPanelProps) {
   const hand = privateState?.hand ?? []
   const known = privateState?.known ?? {}
@@ -60,9 +63,9 @@ export default function PlayerPanel({
       className={`
         relative rounded-2xl p-4 backdrop-blur-sm
         ${isLocalPlayer && isCurrentTurn
-          ? 'bg-emerald-900/40 border-2 border-amber-500/50 shadow-lg shadow-amber-500/10 ring-1 ring-emerald-500/30'
+          ? 'bg-emerald-900/40 border-2 border-amber-500/50 ring-1 ring-emerald-500/30 turn-glow'
           : isCurrentTurn
-            ? 'bg-emerald-900/40 border-2 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+            ? 'bg-emerald-900/40 border-2 border-emerald-500/50 turn-glow'
             : isLocalPlayer
               ? 'bg-amber-900/15 border-2 border-amber-500/30'
               : 'bg-slate-800/40 border border-slate-700/50'
@@ -71,6 +74,7 @@ export default function PlayerPanel({
       style={{
         borderLeftWidth: '4px',
         borderLeftColor: color.solid,
+        ...(isCurrentTurn ? { '--turn-glow-color': color.solid + '60' } as React.CSSProperties : {}),
       }}
     >
       {/* Chat bubble — floating above panel */}
@@ -155,11 +159,28 @@ export default function PlayerPanel({
           const isKnown = !!knownCard
           const isLocked = locks[i]
           const lockInfo = lockInfos[i]
+          const slotColor = slotOverlays?.[i]
+
+          const slotWrapper = (child: React.ReactNode) => (
+            <div key={i} className="relative">
+              {child}
+              {slotColor && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 rounded-xl pointer-events-none z-10 slot-pulse-ring"
+                  style={{
+                    boxShadow: `inset 0 0 0 2px ${slotColor}, 0 0 12px ${slotColor}80, 0 0 24px ${slotColor}30`,
+                  }}
+                />
+              )}
+            </div>
+          )
 
           if (isLocalPlayer && isKnown) {
-            return (
+            return slotWrapper(
               <CardView
-                key={i}
                 card={knownCard}
                 faceUp
                 known
@@ -170,13 +191,12 @@ export default function PlayerPanel({
                 highlight={slotClickable && !isLocked}
                 disabled={slotClickable && isLocked}
                 label={`#${i + 1}`}
-              />
+              />,
             )
           }
 
-          return (
+          return slotWrapper(
             <CardView
-              key={i}
               card={card}
               faceUp={false}
               locked={isLocked}
@@ -187,7 +207,7 @@ export default function PlayerPanel({
               disabled={slotClickable && isLocked}
               label={isLocalPlayer ? `#${i + 1}` : undefined}
               ownerColor={color.tinted}
-            />
+            />,
           )
         })}
       </div>
