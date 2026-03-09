@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { createGame, joinGame, findGameByCode } from '../lib/gameService'
 import { useAuth } from '../hooks/useAuth'
 import HowToPlay from '../components/HowToPlay'
+import FeedbackModal from '../components/FeedbackModal'
 import VersionLabel from '../components/VersionLabel'
 import type { PowerAssignments, PowerEffectType, PowerRankKey, DeckSize } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS, ALL_EFFECT_TYPES, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
@@ -27,6 +28,7 @@ export default function Home() {
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu')
   const [busy, setBusy] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
 
   // Power settings state
   const [assignments, setAssignments] = useState<PowerAssignments>({ ...DEFAULT_POWER_ASSIGNMENTS })
@@ -331,10 +333,20 @@ export default function Home() {
           <p className="text-xs text-slate-500">
             2-8 players &middot; Lowest score wins &middot; Sevens are worth zero!
           </p>
-          <HowToPlay />
+          <div className="flex items-center justify-center gap-3">
+            <HowToPlay />
+            <span className="text-slate-700">|</span>
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="text-xs text-amber-600 hover:text-amber-400 cursor-pointer"
+            >
+              Send Feedback
+            </button>
+          </div>
         </div>
       </motion.div>
 
+      <FeedbackModal open={showFeedback} onClose={() => setShowFeedback(false)} />
       <VersionLabel />
 
       {/* Watermark */}

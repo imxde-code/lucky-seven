@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { submitFeedback } from '../lib/gameService'
 import { CURRENT_VERSION } from '../constants/releases'
+
+const COOLDOWN_MS = 5000
 
 interface FeedbackModalProps {
   open: boolean
@@ -15,9 +17,13 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
+  const lastSubmitRef = useRef(0)
 
   const handleSubmit = async () => {
     if (rating === 0) return toast.error('Please select a rating')
+    if (Date.now() - lastSubmitRef.current < COOLDOWN_MS) {
+      return toast.error('Please wait a few seconds before submitting again')
+    }
     if (!message.trim()) return toast.error('Please write a message')
     setBusy(true)
     try {
@@ -29,6 +35,7 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
         appVersion: CURRENT_VERSION,
         theme,
       })
+      lastSubmitRef.current = Date.now()
       setSent(true)
       toast.success('Feedback sent! Thank you!')
     } catch (e) {
