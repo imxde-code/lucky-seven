@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth'
 import HowToPlay from '../components/HowToPlay'
 import FeedbackModal from '../components/FeedbackModal'
 import VersionLabel from '../components/VersionLabel'
+import PatchNotesModal from '../components/PatchNotesModal'
 import type { PowerAssignments, PowerEffectType, PowerRankKey, DeckSize } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS, ALL_EFFECT_TYPES, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
 
@@ -29,6 +30,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [showPatchNotes, setShowPatchNotes] = useState(false)
 
   // Power settings state
   const [assignments, setAssignments] = useState<PowerAssignments>({ ...DEFAULT_POWER_ASSIGNMENTS })
@@ -337,6 +339,13 @@ export default function Home() {
             <HowToPlay />
             <span className="text-slate-700">|</span>
             <button
+              onClick={() => setShowPatchNotes(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer"
+            >
+              Patch Notes
+            </button>
+            <span className="text-slate-700">|</span>
+            <button
               onClick={() => setShowFeedback(true)}
               className="text-xs text-amber-600 hover:text-amber-400 cursor-pointer"
             >
@@ -347,6 +356,7 @@ export default function Home() {
       </motion.div>
 
       <FeedbackModal open={showFeedback} onClose={() => setShowFeedback(false)} />
+      <PatchNotesModal open={showPatchNotes} onClose={() => setShowPatchNotes(false)} />
       <VersionLabel />
 
       {/* Watermark */}

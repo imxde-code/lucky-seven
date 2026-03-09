@@ -7,6 +7,7 @@ import { useGame } from '../hooks/useGame'
 import { startGame } from '../lib/gameService'
 import VersionLabel from '../components/VersionLabel'
 import FeedbackModal from '../components/FeedbackModal'
+import PatchNotesModal from '../components/PatchNotesModal'
 import ChatPanel from '../components/ChatPanel'
 import { useChat } from '../hooks/useChat'
 
@@ -16,6 +17,7 @@ export default function Lobby() {
   const { game, players, loading } = useGame(gameId, user?.uid)
   const navigate = useNavigate()
   const [showFeedback, setShowFeedback] = useState(false)
+  const [showPatchNotes, setShowPatchNotes] = useState(false)
   const myPlayer = user ? players[user.uid] : null
   const chat = useChat(
     gameId,
@@ -200,6 +202,13 @@ export default function Lobby() {
           </button>
           <span className="text-slate-700">|</span>
           <button
+            onClick={() => setShowPatchNotes(true)}
+            className="text-sm text-slate-400 hover:text-slate-200 cursor-pointer"
+          >
+            Patch Notes
+          </button>
+          <span className="text-slate-700">|</span>
+          <button
             onClick={() => setShowFeedback(true)}
             className="text-sm text-amber-600 hover:text-amber-400 cursor-pointer"
           >
@@ -209,6 +218,7 @@ export default function Lobby() {
       </motion.div>
 
       <FeedbackModal open={showFeedback} onClose={() => setShowFeedback(false)} />
+      <PatchNotesModal open={showPatchNotes} onClose={() => setShowPatchNotes(false)} />
       <ChatPanel
         open={chat.isOpen}
         messages={chat.messages}
