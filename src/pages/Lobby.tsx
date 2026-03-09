@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -6,12 +6,14 @@ import { useAuth } from '../hooks/useAuth'
 import { useGame } from '../hooks/useGame'
 import { startGame } from '../lib/gameService'
 import VersionLabel from '../components/VersionLabel'
+import FeedbackModal from '../components/FeedbackModal'
 
 export default function Lobby() {
   const { gameId } = useParams<{ gameId: string }>()
   const { user } = useAuth()
   const { game, players, loading } = useGame(gameId, user?.uid)
   const navigate = useNavigate()
+  const [showFeedback, setShowFeedback] = useState(false)
 
   // Redirect to game when it starts
   useEffect(() => {
@@ -169,14 +171,24 @@ export default function Lobby() {
           )}
         </div>
 
-        <button
-          onClick={() => navigate('/')}
-          className="block mx-auto mt-4 text-sm text-slate-500 hover:text-slate-300 cursor-pointer"
-        >
-          Leave Lobby
-        </button>
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm text-slate-500 hover:text-slate-300 cursor-pointer"
+          >
+            Leave Lobby
+          </button>
+          <span className="text-slate-700">|</span>
+          <button
+            onClick={() => setShowFeedback(true)}
+            className="text-sm text-amber-600 hover:text-amber-400 cursor-pointer"
+          >
+            Send Feedback
+          </button>
+        </div>
       </motion.div>
 
+      <FeedbackModal open={showFeedback} onClose={() => setShowFeedback(false)} />
       <VersionLabel />
 
       {/* Watermark */}

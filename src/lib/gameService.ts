@@ -849,6 +849,25 @@ export async function updatePresenceThrottled(gameId: string, connected: boolean
   await updateDoc(playerRef(gameId, user.uid), { connected })
 }
 
+// ─── Feedback ───────────────────────────────────────────────────
+export interface FeedbackData {
+  rating: number // 1-5
+  name: string
+  message: string
+  appVersion: string
+  theme: string
+}
+
+export async function submitFeedback(data: FeedbackData): Promise<void> {
+  const user = await ensureAuth()
+  const feedbackId = nanoid(10)
+  await setDoc(doc(db, 'feedback', feedbackId), {
+    ...data,
+    userId: user.uid,
+    createdAt: Date.now(),
+  })
+}
+
 // ─── Subscriptions ──────────────────────────────────────────────
 export function subscribeGame(gameId: string, cb: (game: GameDoc) => void): Unsubscribe {
   return onSnapshot(gameRef(gameId), (snap) => {
