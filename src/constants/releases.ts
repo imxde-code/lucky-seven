@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = 'v1.4'
+export const CURRENT_VERSION = 'v1.4.1'
 
 export interface ReleaseNote {
   version: string
@@ -8,6 +8,39 @@ export interface ReleaseNote {
 }
 
 export const RELEASES: ReleaseNote[] = [
+  {
+    version: 'v1.4.1',
+    title: 'Premium Polish',
+    date: '10 March 2026',
+    sections: [
+      {
+        heading: 'Flying Cards',
+        items: [
+          'Smoother, more premium flying card animation with higher-res bezier arc (16 steps)',
+          'Enhanced easing curve with subtle overshoot settle at the end',
+          'Stronger drop shadow during flight for depth',
+          'Reduced motion: clean fade + short slide (250ms) instead of arc',
+        ],
+      },
+      {
+        heading: 'Table Layout',
+        items: [
+          'Hand-tuned seat positions for 1–7 opponents with no overlaps',
+          'Better spacing with safe-area clamping (header, sides, local player zone)',
+          'Improved height scaling per player count',
+        ],
+      },
+      {
+        heading: 'Game Log',
+        items: [
+          'Fixed short player names (like "a") being incorrectly highlighted inside words',
+          'Power names now display as bold uppercase badges (PEEK, SWAP, LOCK, UNLOCK, CHAOS)',
+          'New log position toggle: Bottom (default) or Left sidebar on wide screens',
+          'Log position persists in localStorage and forces bottom on mobile',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.4',
     title: 'Action Bar & Choreography',

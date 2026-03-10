@@ -43,6 +43,7 @@ import { useChatBubbles } from '../hooks/useChatBubbles'
 import { getSeatColor } from '../lib/playerColors'
 import { useLayout } from '../hooks/useLayout'
 import { useUiMode } from '../hooks/useUiMode'
+import { useLogPosition } from '../hooks/useLogPosition'
 import { getSeatPositions } from '../lib/seatPositions'
 import ActionBar from '../components/ActionBar'
 import { useSelectionMode } from '../hooks/useSelectionMode'
@@ -99,6 +100,7 @@ export default function Game() {
   const { reduced } = useReducedMotion()
   const { layout, toggle: toggleLayout, isMobile } = useLayout()
   const { uiMode, toggleMode: toggleUiMode, isDesktop } = useUiMode()
+  const { position: logPosition, toggle: toggleLogPosition, canSidebar: canLogSidebar } = useLogPosition()
   const { flyingCard, triggerFly, queueFly, flushQueue, clearFly } = useFlyingCard()
   const drawPileRef = useRef<HTMLDivElement>(null)
   const discardPileRef = useRef<HTMLDivElement>(null)
@@ -688,6 +690,20 @@ export default function Game() {
                 {uiMode === 'actionbar' ? '\u{2261}' : '\u{25A1}'}
               </button>
             )}
+            {canLogSidebar && (
+              <button
+                onClick={toggleLogPosition}
+                className={`min-w-[44px] min-h-[44px] flex items-center justify-center px-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  logPosition === 'left'
+                    ? 'bg-orange-900/40 border border-orange-600/40 text-orange-400'
+                    : 'bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:bg-slate-700/60'
+                }`}
+                aria-label={`Log position: ${logPosition === 'left' ? 'Left sidebar' : 'Bottom'}`}
+                title={`Log: ${logPosition === 'left' ? 'Left sidebar' : 'Bottom'}`}
+              >
+                {logPosition === 'left' ? '\u{2190}' : '\u{2193}'}
+              </button>
+            )}
             <GameSettingsBar />
             {isMyTurn && game.status === 'active' && !hasDrawnCard && (
               <button
@@ -737,7 +753,16 @@ export default function Game() {
       )}
 
       {/* ─── Main Content ─────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col p-3 md:p-4">
+      <div className={`flex-1 p-3 md:p-4 ${logPosition === 'left' ? 'flex gap-4' : 'flex flex-col'}`}>
+
+        {/* Left sidebar log */}
+        {logPosition === 'left' && (
+          <div className="shrink-0 w-64 min-h-0 sticky top-16 self-start max-h-[calc(100dvh-5rem)]">
+            <GameLog log={game.log} players={players} position="left" />
+          </div>
+        )}
+
+        <div className={`${logPosition === 'left' ? 'flex-1 min-w-0 flex flex-col' : 'contents'}`}>
 
         {/* Turn queue */}
         <TurnQueue
@@ -771,7 +796,7 @@ export default function Game() {
           /* ─── TABLE LAYOUT ─── Poker-table circular arrangement ─── */
           (() => {
             const seatPositions = getSeatPositions(otherPlayers.length)
-            const baseH = otherPlayers.length <= 3 ? 520 : otherPlayers.length <= 5 ? 580 : 640
+            const baseH = otherPlayers.length <= 2 ? 480 : otherPlayers.length <= 4 ? 540 : otherPlayers.length <= 6 ? 600 : 660
             const panelW = otherPlayers.length <= 4 ? '210px' : '180px'
             return (
               <>
@@ -835,7 +860,7 @@ export default function Game() {
                       className="absolute z-10"
                       style={{
                         left: `${pos.left}%`,
-                        top: `${Math.max(pos.top, 5)}%`,
+                        top: `${pos.top}%`,
                         transform: 'translate(-50%, -50%)',
                         maxWidth: panelW,
                         width: '44%',
@@ -1029,8 +1054,12 @@ export default function Game() {
           </>
         )}
 
-        {/* Game Log */}
-        <GameLog log={game.log} players={players} />
+        {/* Game Log — bottom position (default) */}
+        {logPosition === 'bottom' && (
+          <GameLog log={game.log} players={players} position="bottom" />
+        )}
+
+        </div>{/* end of content wrapper for left-log layout */}
       </div>
 
       {/* ─── Modals ─────────────────────────────────────────── */}
@@ -1132,6 +1161,7 @@ export default function Game() {
           card={flyingCard.card}
           ownerColor={flyingCard.ownerColor}
           onComplete={clearFly}
+          reduced={reduced}
         />
       )}
 

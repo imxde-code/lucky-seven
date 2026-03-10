@@ -2,13 +2,16 @@ import { useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { LogEntry, PlayerDoc } from '../lib/types'
 import { renderLogMessage } from '../lib/logRenderer'
+import type { LogPosition } from '../hooks/useLogPosition'
 
 interface GameLogProps {
   log: LogEntry[]
   players: Record<string, PlayerDoc>
+  /** Display mode — 'bottom' (default) or 'left' (sidebar) */
+  position?: LogPosition
 }
 
-export default function GameLog({ log, players }: GameLogProps) {
+export default function GameLog({ log, players, position = 'bottom' }: GameLogProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -24,11 +27,17 @@ export default function GameLog({ log, players }: GameLogProps) {
     [players],
   )
 
+  const isLeft = position === 'left'
+
   return (
-    <div className="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3 max-h-48 overflow-y-auto">
+    <div
+      className={`bg-slate-900/60 rounded-xl border border-slate-700/50 p-3 overflow-y-auto ${
+        isLeft ? 'h-full' : 'max-h-48'
+      }`}
+    >
       <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Game Log</h3>
       <AnimatePresence initial={false}>
-        {log.slice(-20).map((entry, i) => (
+        {log.slice(-30).map((entry, i) => (
           <motion.div
             key={`${entry.ts}-${i}`}
             initial={{ opacity: 0, x: -10 }}

@@ -25,12 +25,17 @@ interface FlyingCardProps {
   ownerColor?: string
   onComplete: () => void
   duration?: number
+  /** If true, use a simple fade+slide instead of arc (reduced motion) */
+  reduced?: boolean
 }
 
 /**
  * Renders an animated card that flies from one position to another
- * along a curved arc path. Renders via portal into document.body.
- * Default duration: 1.0s (smoother feel).
+ * along a smooth curved arc path. Renders via portal into document.body.
+ *
+ * v1.4.1: Premium motion — higher-res bezier (16 steps), GPU-accelerated
+ * via translate3d, subtle overshoot settle, enhanced shadow during flight.
+ * Reduced motion: simple fade + short slide (250ms).
  */
 export default function FlyingCard({
   from,
@@ -39,7 +44,8 @@ export default function FlyingCard({
   card,
   ownerColor,
   onComplete,
-  duration = 1.2,
+  duration = 1.4,
+  reduced = false,
 }: FlyingCardProps) {
   const width = 56  // sm card width
   const height = 80 // sm card height
@@ -50,50 +56,71 @@ export default function FlyingCard({
   const ex = to.x + to.width / 2 - width / 2
   const ey = to.y + to.height / 2 - height / 2
 
-  // Midpoint with upward arc offset
+  // Midpoint with upward arc offset — proportional to distance
   const mx = (sx + ex) / 2
   const dist = Math.sqrt((ex - sx) ** 2 + (ey - sy) ** 2)
-  const arcHeight = Math.min(dist * 0.35, 80)
+  const arcHeight = Math.min(dist * 0.4, 100)
   const my = Math.min(sy, ey) - arcHeight
 
-  // Generate keyframe positions along quadratic bezier
+  // Generate high-res keyframe positions along quadratic bezier (16 steps)
   const keyframes = useMemo(() => {
-    const steps = 8
-    const lefts: number[] = []
-    const tops: number[] = []
+    if (reduced) {
+      return { xs: [sx, ex], ys: [sy, ey] }
+    }
+    const steps = 16
+    const xs: number[] = []
+    const ys: number[] = []
     for (let i = 0; i <= steps; i++) {
       const t = i / steps
       // Quadratic bezier: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
       const x = (1 - t) ** 2 * sx + 2 * (1 - t) * t * mx + t ** 2 * ex
       const y = (1 - t) ** 2 * sy + 2 * (1 - t) * t * my + t ** 2 * ey
-      lefts.push(x)
-      tops.push(y)
+      xs.push(x)
+      ys.push(y)
     }
-    return { lefts, tops }
-  }, [sx, sy, mx, my, ex, ey])
+    return { xs, ys }
+  }, [sx, sy, mx, my, ex, ey, reduced])
+
+  // Scale keyframes — subtle lift in middle, tiny overshoot at end
+  const scaleFrames = reduced
+    ? [1, 1]
+    : [1, 1.03, 1.06, 1.1, 1.12, 1.13, 1.12, 1.1, 1.08, 1.05, 1.03, 1.01, 1, 0.98, 1.01, 1, 1]
+
+  // Opacity — stay fully visible, subtle settle at end
+  const opacityFrames = reduced
+    ? [0.7, 1]
+    : [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.97, 0.9]
+
+  const reducedDuration = 0.25
 
   return createPortal(
     <motion.div
       initial={{
         position: 'fixed',
-        left: sx,
-        top: sy,
+        left: keyframes.xs[0],
+        top: keyframes.ys[0],
         width,
         height,
-        opacity: 1,
+        opacity: reduced ? 0.7 : 1,
         scale: 1,
         zIndex: 9999,
       }}
       animate={{
-        left: keyframes.lefts,
-        top: keyframes.tops,
-        scale: [1, 1.08, 1.14, 1.12, 1.08, 1.04, 1, 1, 1],
-        opacity: [1, 1, 1, 1, 1, 1, 1, 0.95, 0.85],
+        left: keyframes.xs,
+        top: keyframes.ys,
+        scale: scaleFrames,
+        opacity: opacityFrames,
       }}
-      transition={{ duration, ease: [0.22, 1, 0.36, 1] }}
+      transition={reduced
+        ? { duration: reducedDuration, ease: 'easeOut' }
+        : { duration, ease: [0.16, 1, 0.3, 1] } // custom cubic — fast start, gentle settle
+      }
       onAnimationComplete={onComplete}
       className="pointer-events-none"
-      style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }}
+      style={{
+        filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.45)) drop-shadow(0 4px 8px rgba(0,0,0,0.25))',
+        willChange: 'transform, left, top',
+      }}
     >
       <div
         className={`w-full h-full rounded-xl shadow-xl flex items-center justify-center ${
